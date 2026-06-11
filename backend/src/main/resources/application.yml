@@ -4,6 +4,15 @@ server:
 spring:
   application:
     name: ecbs-backend
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ecbs}
+    username: ${SPRING_DATASOURCE_USERNAME:ecbs_admin}
+    password: ${SPRING_DATASOURCE_PASSWORD:ecbs_secret}
+  jpa:
+    # Schema is owned by the SQL scripts in /database; Hibernate only checks.
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
 
 ecbs:
   cobol-bridge:

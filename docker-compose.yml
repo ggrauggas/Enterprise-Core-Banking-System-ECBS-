@@ -49,9 +49,14 @@ services:
     container_name: ecbs-backend
     environment:
       ECBS_COBOL_BRIDGE_URL: http://cobol-runtime:9090
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ecbs
+      SPRING_DATASOURCE_USERNAME: ecbs_admin
+      SPRING_DATASOURCE_PASSWORD: ecbs_secret
     ports:
       - "8080:8080"
     depends_on:
+      postgres:
+        condition: service_healthy
       cobol-runtime:
         condition: service_healthy
     healthcheck:

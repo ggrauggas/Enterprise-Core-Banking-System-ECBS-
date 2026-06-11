@@ -57,7 +57,7 @@ Servicios:
 | Fase | Descripción              | Estado |
 |------|--------------------------|--------|
 | 1    | Fundación del proyecto   | ✅     |
-| 2    | Modelo bancario          | ⬜     |
+| 2    | Modelo bancario          | ✅     |
 | 3    | Framework COBOL          | ⬜     |
 | 4    | Gestión de clientes      | ⬜     |
 | 5    | Gestión de cuentas       | ⬜     |
