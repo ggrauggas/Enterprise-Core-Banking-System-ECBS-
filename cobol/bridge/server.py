@@ -28,7 +28,8 @@ def list_programs():
         return []
     return sorted(
         name for name in os.listdir(BIN_DIR)
-        if os.access(os.path.join(BIN_DIR, name), os.X_OK)
+        if not name.endswith(".so")
+        and os.access(os.path.join(BIN_DIR, name), os.X_OK)
     )
 
 

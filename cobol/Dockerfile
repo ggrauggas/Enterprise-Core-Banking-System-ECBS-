@@ -45,9 +45,13 @@ COPY cobol/src/ /opt/ecbs/src/
 COPY cobol/bridge/ /opt/ecbs/bridge/
 COPY scripts/compile-cobol.sh /opt/ecbs/compile-cobol.sh
 
-RUN chmod +x /opt/ecbs/compile-cobol.sh && /opt/ecbs/compile-cobol.sh
+RUN chmod +x /opt/ecbs/compile-cobol.sh && /opt/ecbs/compile-cobol.sh \
+    && mkdir -p /opt/ecbs/logs
 
 ENV ECBS_BIN_DIR=/opt/ecbs/bin
+# Where CALL resolves the dynamic COBOL modules (.so)
+ENV COB_LIBRARY_PATH=/opt/ecbs/bin
+ENV ECBS_LOG_FILE=/opt/ecbs/logs/ecbs.log
 ENV BRIDGE_PORT=9090
 
 EXPOSE 9090

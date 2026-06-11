@@ -1,7 +1,9 @@
 #!/bin/sh
-# Compiles every COBOL program under /opt/ecbs/src into /opt/ecbs/bin.
-# Programs containing EXEC SQL blocks are precompiled with ocesql first
-# and linked against libocesql (PostgreSQL).
+# Compiles the ECBS COBOL sources:
+#   src/modules/*.cbl  -> dynamic libraries (.so) reachable via CALL
+#   src/programs/*.cbl -> executables exposed through the HTTP bridge
+# Sources containing EXEC SQL are precompiled with ocesql and linked
+# against libocesql (PostgreSQL).
 set -e
 
 SRC_DIR=/opt/ecbs/src
@@ -11,18 +13,34 @@ CPY_DIR=/opt/ecbs/copybooks
 
 mkdir -p "$BIN_DIR" "$BUILD_DIR"
 
-for src in "$SRC_DIR"/*.cbl; do
-    [ -e "$src" ] || continue
+compile_one() {
+    src=$1
+    mode=$2
     name=$(basename "$src" .cbl)
+    input=$src
+    extra=""
     if grep -qi "EXEC SQL" "$src"; then
         ocesql "$src" "$BUILD_DIR/$name.cob"
-        cobc -x -O2 -I "$CPY_DIR" -o "$BIN_DIR/$name" "$BUILD_DIR/$name.cob" \
-            -L/usr/local/lib -locesql
-    else
-        cobc -x -O2 -I "$CPY_DIR" -o "$BIN_DIR/$name" "$src"
+        input="$BUILD_DIR/$name.cob"
+        extra="-L/usr/local/lib -locesql"
     fi
-    echo "compiled: $name"
+    if [ "$mode" = "module" ]; then
+        cobc -m -O2 -I "$CPY_DIR" -o "$BIN_DIR/$name.so" "$input" $extra
+    else
+        cobc -x -O2 -I "$CPY_DIR" -o "$BIN_DIR/$name" "$input" $extra
+    fi
+    echo "compiled ($mode): $name"
+}
+
+for f in "$SRC_DIR"/modules/*.cbl; do
+    [ -e "$f" ] || continue
+    compile_one "$f" module
 done
 
-echo "COBOL compilation finished. Binaries in $BIN_DIR:"
+for f in "$SRC_DIR"/programs/*.cbl; do
+    [ -e "$f" ] || continue
+    compile_one "$f" program
+done
+
+echo "COBOL compilation finished. Contents of $BIN_DIR:"
 ls -1 "$BIN_DIR"
