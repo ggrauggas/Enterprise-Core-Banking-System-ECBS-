@@ -1,0 +1,24 @@
+.claude
+Prompt.md
+
+# Java / Maven
+backend/target/
+*.class
+
+# Node / Vite
+frontend/node_modules/
+frontend/dist/
+npm-debug.log*
+
+# COBOL build artifacts
+cobol/bin/
+cobol/build/
+*.so
+*.dylib
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+Thumbs.db
+.DS_Store

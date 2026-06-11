@@ -1,0 +1,9 @@
+.git
+.claude
+docs
+frontend
+backend
+tests
+**/node_modules
+**/target
+**/dist

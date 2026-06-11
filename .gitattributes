@@ -1,0 +1,9 @@
+# Keep Unix line endings for files consumed inside Linux containers.
+*.sh    text eol=lf
+*.py    text eol=lf
+*.sql   text eol=lf
+*.cbl   text eol=lf
+*.cpy   text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+Dockerfile text eol=lf

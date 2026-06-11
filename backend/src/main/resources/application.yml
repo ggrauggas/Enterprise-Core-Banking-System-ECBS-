@@ -1,0 +1,16 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: ecbs-backend
+
+ecbs:
+  cobol-bridge:
+    url: ${ECBS_COBOL_BRIDGE_URL:http://localhost:9090}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

@@ -1,0 +1,75 @@
+name: ecbs
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ecbs-postgres
+    environment:
+      POSTGRES_DB: ecbs
+      POSTGRES_USER: ecbs_admin
+      POSTGRES_PASSWORD: ecbs_secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ecbs_admin -d ecbs"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  cobol-runtime:
+    build:
+      context: .
+      dockerfile: cobol/Dockerfile
+    container_name: ecbs-cobol-runtime
+    environment:
+      ECBS_DB_HOST: postgres
+      ECBS_DB_PORT: "5432"
+      ECBS_DB_NAME: ecbs
+      ECBS_DB_USER: ecbs_admin
+      ECBS_DB_PASSWORD: ecbs_secret
+      BRIDGE_PORT: "9090"
+    ports:
+      - "9090:9090"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:9090/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 5s
+
+  backend:
+    build:
+      context: ./backend
+    container_name: ecbs-backend
+    environment:
+      ECBS_COBOL_BRIDGE_URL: http://cobol-runtime:9090
+    ports:
+      - "8080:8080"
+    depends_on:
+      cobol-runtime:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health > /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: ecbs-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
