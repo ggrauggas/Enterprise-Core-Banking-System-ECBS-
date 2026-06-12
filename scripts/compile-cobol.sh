@@ -10,6 +10,8 @@ SRC_DIR=/opt/ecbs/src
 BIN_DIR=/opt/ecbs/bin
 BUILD_DIR=/opt/ecbs/build
 CPY_DIR=/opt/ecbs/copybooks
+# sqlca.cbl shipped by Open-COBOL-ESQL (see cobol/Dockerfile)
+OCESQL_CPY_DIR=/usr/local/share/ocesql/copy
 
 mkdir -p "$BIN_DIR" "$BUILD_DIR"
 
@@ -22,7 +24,7 @@ compile_one() {
     if grep -qi "EXEC SQL" "$src"; then
         ocesql "$src" "$BUILD_DIR/$name.cob"
         input="$BUILD_DIR/$name.cob"
-        extra="-L/usr/local/lib -locesql"
+        extra="-I $OCESQL_CPY_DIR -L/usr/local/lib -locesql"
     fi
     if [ "$mode" = "module" ]; then
         cobc -m -O2 -I "$CPY_DIR" -o "$BIN_DIR/$name.so" "$input" $extra

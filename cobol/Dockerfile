@@ -36,6 +36,8 @@ RUN git clone --depth 1 https://github.com/opensourcecobol/Open-COBOL-ESQL.git /
     && make \
     && make install \
     && ldconfig \
+    && mkdir -p /usr/local/share/ocesql/copy \
+    && cp /tmp/ocesql/copy/sqlca.cbl /usr/local/share/ocesql/copy/ \
     && rm -rf /tmp/ocesql
 
 WORKDIR /opt/ecbs
@@ -51,6 +53,8 @@ RUN chmod +x /opt/ecbs/compile-cobol.sh && /opt/ecbs/compile-cobol.sh \
 ENV ECBS_BIN_DIR=/opt/ecbs/bin
 # Where CALL resolves the dynamic COBOL modules (.so)
 ENV COB_LIBRARY_PATH=/opt/ecbs/bin
+# Preload the ocesql runtime so CALL 'OCESQLConnect' etc. resolve
+ENV COB_PRE_LOAD=/usr/local/lib/libocesql.so
 ENV ECBS_LOG_FILE=/opt/ecbs/logs/ecbs.log
 ENV BRIDGE_PORT=9090
 
