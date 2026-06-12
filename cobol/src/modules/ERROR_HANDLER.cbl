@@ -46,8 +46,12 @@
            05 FILLER  PIC X(40) VALUE 'ACCOUNT BALANCE NOT ZERO'.
            05 FILLER  PIC X(5)  VALUE 'E017'.
            05 FILLER  PIC X(40) VALUE 'CUSTOMER NOT ACTIVE'.
+           05 FILLER  PIC X(5)  VALUE 'E018'.
+           05 FILLER  PIC X(40) VALUE 'INVALID AMOUNT'.
+           05 FILLER  PIC X(5)  VALUE 'E019'.
+           05 FILLER  PIC X(40) VALUE 'SAME ACCOUNT TRANSFER'.
        01  WS-ERR-TABLE REDEFINES WS-ERR-DEFS.
-           05 WS-ERR-ENTRY OCCURS 17 TIMES.
+           05 WS-ERR-ENTRY OCCURS 19 TIMES.
               10 WS-ERR-CODE       PIC X(5).
               10 WS-ERR-TEXT       PIC X(40).
        01  WS-IDX                  PIC 9(2).
@@ -67,11 +71,11 @@
        PROCEDURE DIVISION USING EH-PARAMS.
        MAIN-PARA.
            MOVE 'UNKNOWN ERROR CODE' TO WS-FOUND-TEXT
-           PERFORM VARYING WS-IDX FROM 1 BY 1 UNTIL WS-IDX > 17
+           PERFORM VARYING WS-IDX FROM 1 BY 1 UNTIL WS-IDX > 19
                IF FUNCTION TRIM(WS-ERR-CODE(WS-IDX))
                        = FUNCTION TRIM(EH-ERROR-CODE)
                    MOVE WS-ERR-TEXT(WS-IDX) TO WS-FOUND-TEXT
-                   MOVE 18 TO WS-IDX
+                   MOVE 20 TO WS-IDX
                END-IF
            END-PERFORM
 
