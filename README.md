@@ -60,7 +60,7 @@ Servicios:
 | 2    | Modelo bancario          | ✅     |
 | 3    | Framework COBOL          | ✅     |
 | 4    | Gestión de clientes      | ✅     |
-| 5    | Gestión de cuentas       | ⬜     |
+| 5    | Gestión de cuentas       | ✅     |
 | 6    | Motor transaccional      | ⬜     |
 | 7    | Sistema de tarjetas      | ⬜     |
 | 8    | Sistema de préstamos     | ⬜     |
