@@ -48,7 +48,7 @@ COPY cobol/bridge/ /opt/ecbs/bridge/
 COPY scripts/compile-cobol.sh /opt/ecbs/compile-cobol.sh
 
 RUN chmod +x /opt/ecbs/compile-cobol.sh && /opt/ecbs/compile-cobol.sh \
-    && mkdir -p /opt/ecbs/logs
+    && mkdir -p /opt/ecbs/logs /opt/ecbs/batch-output
 
 ENV ECBS_BIN_DIR=/opt/ecbs/bin
 # Where CALL resolves the dynamic COBOL modules (.so)
@@ -56,6 +56,8 @@ ENV COB_LIBRARY_PATH=/opt/ecbs/bin
 # Preload the ocesql runtime so CALL 'OCESQLConnect' etc. resolve
 ENV COB_PRE_LOAD=/usr/local/lib/libocesql.so
 ENV ECBS_LOG_FILE=/opt/ecbs/logs/ecbs.log
+# Where the nightly batch writes BATCH_LOG / RUN_SUMMARY / AUDIT_REPORT
+ENV ECBS_BATCH_DIR=/opt/ecbs/batch-output
 ENV BRIDGE_PORT=9090
 
 EXPOSE 9090

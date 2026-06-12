@@ -64,7 +64,7 @@ Servicios:
 | 6    | Motor transaccional      | ✅     |
 | 7    | Sistema de tarjetas      | ✅     |
 | 8    | Sistema de préstamos     | ✅     |
-| 9    | Batch nocturno           | ⬜     |
+| 9    | Batch nocturno           | ✅     |
 | 10   | Motor de auditoría       | ⬜     |
 | 11   | Reporting                | ⬜     |
 | 12   | API REST completa        | ⬜     |
