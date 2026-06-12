@@ -50,8 +50,12 @@
            05 FILLER  PIC X(40) VALUE 'INVALID AMOUNT'.
            05 FILLER  PIC X(5)  VALUE 'E019'.
            05 FILLER  PIC X(40) VALUE 'SAME ACCOUNT TRANSFER'.
+           05 FILLER  PIC X(5)  VALUE 'E020'.
+           05 FILLER  PIC X(40) VALUE 'CARD IS CANCELLED'.
+           05 FILLER  PIC X(5)  VALUE 'E021'.
+           05 FILLER  PIC X(40) VALUE 'REFUND EXCEEDS CREDIT LIMIT'.
        01  WS-ERR-TABLE REDEFINES WS-ERR-DEFS.
-           05 WS-ERR-ENTRY OCCURS 19 TIMES.
+           05 WS-ERR-ENTRY OCCURS 21 TIMES.
               10 WS-ERR-CODE       PIC X(5).
               10 WS-ERR-TEXT       PIC X(40).
        01  WS-IDX                  PIC 9(2).
@@ -71,11 +75,11 @@
        PROCEDURE DIVISION USING EH-PARAMS.
        MAIN-PARA.
            MOVE 'UNKNOWN ERROR CODE' TO WS-FOUND-TEXT
-           PERFORM VARYING WS-IDX FROM 1 BY 1 UNTIL WS-IDX > 19
+           PERFORM VARYING WS-IDX FROM 1 BY 1 UNTIL WS-IDX > 21
                IF FUNCTION TRIM(WS-ERR-CODE(WS-IDX))
                        = FUNCTION TRIM(EH-ERROR-CODE)
                    MOVE WS-ERR-TEXT(WS-IDX) TO WS-FOUND-TEXT
-                   MOVE 20 TO WS-IDX
+                   MOVE 22 TO WS-IDX
                END-IF
            END-PERFORM
 

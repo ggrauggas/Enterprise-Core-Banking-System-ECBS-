@@ -62,7 +62,7 @@ Servicios:
 | 4    | Gestión de clientes      | ✅     |
 | 5    | Gestión de cuentas       | ✅     |
 | 6    | Motor transaccional      | ✅     |
-| 7    | Sistema de tarjetas      | ⬜     |
+| 7    | Sistema de tarjetas      | ✅     |
 | 8    | Sistema de préstamos     | ⬜     |
 | 9    | Batch nocturno           | ⬜     |
 | 10   | Motor de auditoría       | ⬜     |
