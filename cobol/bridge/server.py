@@ -82,6 +82,34 @@ class BridgeHandler(BaseHTTPRequestHandler):
         else:
             self._send_json(404, {"error": "not found"})
 
+    def _read_request_body(self):
+        """Reads the request body, honouring chunked transfer-encoding.
+
+        Clients such as Spring's RestClient stream the body with
+        Transfer-Encoding: chunked and no Content-Length, so a plain
+        Content-Length read would see an empty body.
+        """
+        encoding = (self.headers.get("Transfer-Encoding") or "").lower()
+        if "chunked" in encoding:
+            chunks = []
+            while True:
+                size_line = self.rfile.readline().strip()
+                if not size_line:
+                    continue
+                try:
+                    size = int(size_line.split(b";")[0], 16)
+                except ValueError:
+                    break
+                if size == 0:
+                    self.rfile.readline()  # trailing CRLF after the last chunk
+                    break
+                chunks.append(self.rfile.read(size))
+                self.rfile.readline()  # CRLF following each chunk
+            return b"".join(chunks)
+
+        length = int(self.headers.get("Content-Length") or 0)
+        return self.rfile.read(length) if length else b""
+
     def do_POST(self):
         match = re.match(r"^/run/([^/]+)$", self.path)
         if not match:
@@ -93,8 +121,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
             self._send_json(404, {"error": f"unknown program: {name}"})
             return
 
-        length = int(self.headers.get("Content-Length") or 0)
-        raw_body = self.rfile.read(length) if length else b""
+        raw_body = self._read_request_body()
         try:
             payload = json.loads(raw_body) if raw_body else {}
         except json.JSONDecodeError:

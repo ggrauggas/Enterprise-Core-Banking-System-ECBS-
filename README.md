@@ -67,7 +67,7 @@ Servicios:
 | 9    | Batch nocturno           | ✅     |
 | 10   | Motor de auditoría       | ✅     |
 | 11   | Reporting                | ✅     |
-| 12   | API REST completa        | ⬜     |
+| 12   | API REST completa        | ✅     |
 | 13   | Frontend React completo  | ⬜     |
 | 14   | Testing                  | ⬜     |
 | 15   | Optimización empresarial | ⬜     |
