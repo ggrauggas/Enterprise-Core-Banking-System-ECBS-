@@ -68,7 +68,7 @@ Servicios:
 | 10   | Motor de auditoría       | ✅     |
 | 11   | Reporting                | ✅     |
 | 12   | API REST completa        | ✅     |
-| 13   | Frontend React completo  | ⬜     |
+| 13   | Frontend React completo  | ✅     |
 | 14   | Testing                  | ⬜     |
 | 15   | Optimización empresarial | ⬜     |
 | 16   | Simulación de producción | ⬜     |
