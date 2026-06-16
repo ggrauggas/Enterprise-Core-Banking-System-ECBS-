@@ -16,6 +16,10 @@ cobol/build/
 *.so
 *.dylib
 
+# Generated report exports (regenerable via the reporting programs)
+/statement_*.pdf
+/bank_report.pdf
+
 # IDE / OS
 .idea/
 .vscode/
