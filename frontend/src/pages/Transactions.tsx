@@ -20,6 +20,7 @@ import TableRow from '@mui/material/TableRow';
 import { api, eur, errMsg } from '../api/client';
 import type { Account, Transaction } from '../api/types';
 import { useToast } from '../ui/Toast';
+import PageHeader from '../ui/PageHeader';
 
 export default function Transactions() {
   const toast = useToast();
@@ -89,9 +90,7 @@ export default function Transactions() {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        Transacciones
-      </Typography>
+      <PageHeader title="Transacciones" subtitle="Depósitos, retiros y transferencias" />
 
       <Stack direction="row" spacing={2} useFlexGap flexWrap="wrap">
         <Card sx={{ flex: '1 1 380px' }}>

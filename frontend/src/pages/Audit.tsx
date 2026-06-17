@@ -21,6 +21,7 @@ import Divider from '@mui/material/Divider';
 import { api, errMsg } from '../api/client';
 import type { AuditEntry, AuditStats } from '../api/types';
 import { useToast } from '../ui/Toast';
+import PageHeader from '../ui/PageHeader';
 
 const ENTITY_TYPES = ['', 'CUSTOMER', 'ACCOUNT', 'CARD', 'LOAN', 'BATCH'];
 
@@ -70,9 +71,7 @@ export default function Audit() {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        Auditoría
-      </Typography>
+      <PageHeader title="Auditoría" subtitle="Rastro completo de operaciones con filtros avanzados" />
 
       {stats && (
         <Card sx={{ mb: 3 }}>

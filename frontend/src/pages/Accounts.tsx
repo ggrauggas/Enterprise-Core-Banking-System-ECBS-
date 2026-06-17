@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
@@ -27,6 +26,7 @@ import { api, eur, errMsg } from '../api/client';
 import type { Account, Customer, Transaction } from '../api/types';
 import { useToast } from '../ui/Toast';
 import StatusChip from '../ui/StatusChip';
+import PageHeader from '../ui/PageHeader';
 
 export default function Accounts() {
   const toast = useToast();
@@ -89,12 +89,15 @@ export default function Accounts() {
 
   return (
     <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="h4">Cuentas</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpen(true)}>
-          Abrir cuenta
-        </Button>
-      </Stack>
+      <PageHeader
+        title="Cuentas"
+        subtitle="Apertura, cierre y consulta de movimientos"
+        action={
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpen(true)}>
+            Abrir cuenta
+          </Button>
+        }
+      />
 
       {loading ? (
         <CircularProgress />

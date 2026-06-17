@@ -8,6 +8,9 @@ import List from '@mui/material/List';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
+import Avatar from '@mui/material/Avatar';
+import Chip from '@mui/material/Chip';
+import Divider from '@mui/material/Divider';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
@@ -16,6 +19,7 @@ import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
 import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
+import PersonIcon from '@mui/icons-material/Person';
 import type { ReactElement } from 'react';
 
 import Dashboard from './pages/Dashboard';
@@ -26,7 +30,7 @@ import Cards from './pages/Cards';
 import Loans from './pages/Loans';
 import Audit from './pages/Audit';
 
-const DRAWER_WIDTH = 232;
+const DRAWER_WIDTH = 244;
 
 interface NavItem {
   to: string;
@@ -47,15 +51,39 @@ const NAV: NavItem[] = [
 export default function App() {
   return (
     <Box sx={{ display: 'flex' }}>
-      <AppBar position="fixed" sx={{ zIndex: (t) => t.zIndex.drawer + 1 }}>
+      <AppBar
+        position="fixed"
+        elevation={0}
+        sx={{
+          zIndex: (t) => t.zIndex.drawer + 1,
+          background: 'linear-gradient(90deg, #072742 0%, #0b3d66 60%, #114b7d 100%)',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+        }}
+      >
         <Toolbar>
-          <AccountBalanceIcon sx={{ mr: 2 }} />
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            ECBS — Enterprise Core Banking System
-          </Typography>
-          <Typography variant="body2" sx={{ opacity: 0.85 }}>
-            COBOL · Spring Boot · React
-          </Typography>
+          <Avatar
+            variant="rounded"
+            sx={{ bgcolor: 'rgba(255,255,255,0.14)', mr: 1.5, width: 38, height: 38 }}
+          >
+            <AccountBalanceIcon />
+          </Avatar>
+          <Box sx={{ flexGrow: 1, lineHeight: 1 }}>
+            <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 800, letterSpacing: '0.02em' }}>
+              ECBS
+            </Typography>
+            <Typography variant="caption" sx={{ opacity: 0.7 }}>
+              Enterprise Core Banking System
+            </Typography>
+          </Box>
+          <Chip
+            avatar={
+              <Avatar sx={{ bgcolor: 'secondary.main' }}>
+                <PersonIcon sx={{ fontSize: 16 }} />
+              </Avatar>
+            }
+            label="Operador"
+            sx={{ color: '#fff', bgcolor: 'rgba(255,255,255,0.12)', fontWeight: 600 }}
+          />
         </Toolbar>
       </AppBar>
 
@@ -68,18 +96,31 @@ export default function App() {
         }}
       >
         <Toolbar />
-        <Box sx={{ overflow: 'auto' }}>
-          <List>
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'auto' }}>
+          <Typography
+            variant="overline"
+            sx={{ px: 3, pt: 2, pb: 0.5, color: 'text.secondary', letterSpacing: '0.12em' }}
+          >
+            Operaciones
+          </Typography>
+          <List sx={{ px: 0 }}>
             {NAV.map((item) => (
               <ListItemButton
                 key={item.to}
                 component={NavLink}
                 to={item.to}
                 sx={{
+                  mx: 1.25,
+                  my: 0.25,
+                  borderRadius: 2,
+                  color: 'text.secondary',
+                  '& .MuiListItemIcon-root': { color: 'text.secondary', minWidth: 40 },
+                  '&:hover': { bgcolor: 'rgba(11,61,102,0.06)' },
                   '&.active': {
-                    bgcolor: 'action.selected',
-                    borderRight: 3,
-                    borderColor: 'primary.main',
+                    bgcolor: 'rgba(11,61,102,0.10)',
+                    color: 'primary.dark',
+                    '& .MuiListItemIcon-root': { color: 'primary.dark' },
+                    '& .MuiListItemText-primary': { fontWeight: 700 },
                   },
                 }}
               >
@@ -88,10 +129,28 @@ export default function App() {
               </ListItemButton>
             ))}
           </List>
+
+          <Box sx={{ flexGrow: 1 }} />
+          <Divider />
+          <Box sx={{ p: 2 }}>
+            <Typography variant="caption" color="text.secondary" display="block">
+              v1.0 · React · Spring Boot · COBOL
+            </Typography>
+            <Chip
+              size="small"
+              color="success"
+              variant="outlined"
+              label="● Sistema operativo"
+              sx={{ mt: 1, '& .MuiChip-label': { fontSize: 11 } }}
+            />
+          </Box>
         </Box>
       </Drawer>
 
-      <Box component="main" sx={{ flexGrow: 1, p: 3, minHeight: '100vh' }}>
+      <Box
+        component="main"
+        sx={{ flexGrow: 1, p: { xs: 2, md: 4 }, minHeight: '100vh', bgcolor: 'background.default' }}
+      >
         <Toolbar />
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />

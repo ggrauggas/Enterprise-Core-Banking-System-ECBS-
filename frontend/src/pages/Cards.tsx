@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
@@ -29,6 +28,7 @@ import { api, eur, errMsg } from '../api/client';
 import type { Account, CardEntity } from '../api/types';
 import { useToast } from '../ui/Toast';
 import StatusChip from '../ui/StatusChip';
+import PageHeader from '../ui/PageHeader';
 
 type OpKind = 'purchases' | 'refunds';
 
@@ -96,12 +96,15 @@ export default function Cards() {
 
   return (
     <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="h4">Tarjetas</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setIssueOpen(true)}>
-          Emitir tarjeta
-        </Button>
-      </Stack>
+      <PageHeader
+        title="Tarjetas"
+        subtitle="Emisión, bloqueo, compras y devoluciones"
+        action={
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setIssueOpen(true)}>
+            Emitir tarjeta
+          </Button>
+        }
+      />
 
       {loading ? (
         <CircularProgress />

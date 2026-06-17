@@ -30,6 +30,7 @@ import { api, eur, errMsg } from '../api/client';
 import type { Account, Loan, Simulation } from '../api/types';
 import { useToast } from '../ui/Toast';
 import StatusChip from '../ui/StatusChip';
+import PageHeader from '../ui/PageHeader';
 
 const blankSim = { amount: '10000', interestRate: '5', durationMonths: '36' };
 
@@ -129,12 +130,15 @@ export default function Loans() {
 
   return (
     <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="h4">Préstamos</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setRequestOpen(true)}>
-          Solicitar préstamo
-        </Button>
-      </Stack>
+      <PageHeader
+        title="Préstamos"
+        subtitle="Simulación, solicitud, aprobación y seguimiento"
+        action={
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setRequestOpen(true)}>
+            Solicitar préstamo
+          </Button>
+        }
+      />
 
       <Card sx={{ mb: 3 }}>
         <CardContent>

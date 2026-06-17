@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import type { ChangeEvent } from 'react';
-import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
@@ -27,6 +26,7 @@ import { api, errMsg } from '../api/client';
 import type { Customer } from '../api/types';
 import { useToast } from '../ui/Toast';
 import StatusChip from '../ui/StatusChip';
+import PageHeader from '../ui/PageHeader';
 
 interface FormState {
   firstName: string;
@@ -112,12 +112,15 @@ export default function Customers() {
 
   return (
     <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="h4">Clientes</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>
-          Nuevo cliente
-        </Button>
-      </Stack>
+      <PageHeader
+        title="Clientes"
+        subtitle="Alta, modificación y baja lógica de clientes"
+        action={
+          <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>
+            Nuevo cliente
+          </Button>
+        }
+      />
 
       {loading ? (
         <CircularProgress />
