@@ -1,7 +1,7 @@
 .claude
 Prompt.md
 APUNTES.md
-
+.agents
 # Java / Maven
 backend/target/
 *.class
@@ -9,13 +9,19 @@ backend/target/
 # Node / Vite
 frontend/node_modules/
 frontend/dist/
+frontend/coverage/
+frontend/*.tsbuildinfo
 npm-debug.log*
 
 # COBOL build artifacts
 cobol/bin/
 cobol/build/
+cobol/build-tests/
 *.so
 *.dylib
+
+# Simulation harness scratch file (Fase 16)
+scripts/.batch-result.tmp
 
 # Generated report exports (regenerable via the reporting programs)
 /statement_*.pdf

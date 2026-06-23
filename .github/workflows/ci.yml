@@ -1,0 +1,86 @@
+name: ECBS CI
+
+# Continuous integration for the Enterprise Core Banking System (Fase 14).
+# Runs the four test layers in parallel and an end-to-end smoke test of the
+# whole Docker stack.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ---------------------------------------------------------------- backend
+  backend:
+    name: Backend (JUnit + JaCoCo 80%)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: maven
+      - name: Build, test and verify coverage gate
+        working-directory: backend
+        run: mvn -B verify
+      - name: Upload JaCoCo report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-jacoco
+          path: backend/target/site/jacoco
+
+  # --------------------------------------------------------------- frontend
+  frontend:
+    name: Frontend (Vitest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: Type-check and build
+        run: npm run build
+      - name: Unit tests with coverage
+        run: npm run test:coverage
+
+  # ------------------------------------------------------------------ cobol
+  cobol:
+    name: COBOL modules (GnuCOBOL)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install GnuCOBOL
+        run: sudo apt-get update && sudo apt-get install -y gnucobol3
+      - name: Run COBOL unit tests
+        run: sh scripts/run-cobol-tests.sh
+
+  # ------------------------------------------------------------ integration
+  integration:
+    name: Integration smoke (full Docker stack)
+    runs-on: ubuntu-latest
+    needs: [backend, frontend, cobol]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and start the stack
+        run: docker compose up --build -d
+      - name: Run API smoke tests
+        run: bash tests/smoke-api.sh
+        env:
+          BASE_URL: http://localhost:8080
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose logs --no-color
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
