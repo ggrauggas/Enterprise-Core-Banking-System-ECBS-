@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { ChangeEvent } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -25,8 +25,13 @@ import PersonOffIcon from '@mui/icons-material/PersonOff';
 import { api, errMsg } from '../api/client';
 import type { Customer } from '../api/types';
 import { useToast } from '../ui/Toast';
+import { useConfirm } from '../ui/ConfirmDialog';
 import StatusChip from '../ui/StatusChip';
 import PageHeader from '../ui/PageHeader';
+import { SkeletonRows, EmptyRow } from '../ui/TableStates';
+import { useServerTable } from '../ui/useServerTable';
+import DataTableToolbar from '../ui/DataTableToolbar';
+import DataTablePagination from '../ui/DataTablePagination';
 
 interface FormState {
   firstName: string;
@@ -40,23 +45,14 @@ const EMPTY: FormState = { firstName: '', lastName: '', birthDate: '', email: ''
 
 export default function Customers() {
   const toast = useToast();
-  const [rows, setRows] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
+  const confirm = useConfirm();
+  const st = useServerTable<Customer>('/customers', {
+    onError: (e) => toast(errMsg(e), 'error'),
+  });
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Customer | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY);
   const [saving, setSaving] = useState(false);
-
-  const load = () => {
-    setLoading(true);
-    api
-      .get<Customer[]>('/customers')
-      .then((r) => setRows(r.data))
-      .catch((e) => toast(errMsg(e), 'error'))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(load, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openCreate = () => {
     setEditing(null);
@@ -90,19 +86,32 @@ export default function Customers() {
       .then(() => {
         toast(editing ? 'Cliente actualizado' : 'Cliente creado');
         setOpen(false);
-        load();
+        st.reload();
       })
       .catch((e) => toast(errMsg(e), 'error'))
       .finally(() => setSaving(false));
   };
 
-  const remove = (c: Customer) => {
-    if (!window.confirm(`¿Dar de baja a ${c.firstName} ${c.lastName}?`)) return;
+  const remove = async (c: Customer) => {
+    const ok = await confirm({
+      title: 'Dar de baja al cliente',
+      message:
+        'Se realizará la baja lógica. Podrás consultarlo filtrando por estado, pero el cliente dejará de operar.',
+      confirmText: 'Dar de baja',
+      tone: 'danger',
+      icon: <PersonOffIcon fontSize="small" />,
+      details: [
+        { label: 'Cliente', value: `${c.firstName} ${c.lastName}` },
+        { label: 'ID', value: c.customerId, mono: true },
+        { label: 'Email', value: c.email },
+      ],
+    });
+    if (!ok) return;
     api
       .delete(`/customers/${c.customerId}`)
       .then(() => {
         toast('Cliente dado de baja');
-        load();
+        st.reload();
       })
       .catch((e) => toast(errMsg(e), 'error'));
   };
@@ -122,10 +131,16 @@ export default function Customers() {
         }
       />
 
-      {loading ? (
-        <CircularProgress />
-      ) : (
-        <TableContainer component={Paper}>
+      <DataTableToolbar
+        query={st.query}
+        onSearch={st.onSearch}
+        placeholder="Buscar por nombre, email, teléfono…"
+        total={st.total}
+        isFiltered={st.isFiltered}
+      />
+
+      <Paper variant="outlined">
+        <TableContainer>
           <Table size="small">
             <TableHead>
               <TableRow>
@@ -139,43 +154,61 @@ export default function Customers() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {rows.map((c) => (
-                <TableRow key={c.customerId} hover>
-                  <TableCell>{c.customerId}</TableCell>
-                  <TableCell>
-                    {c.firstName} {c.lastName}
-                  </TableCell>
-                  <TableCell>{c.email}</TableCell>
-                  <TableCell>{c.phone}</TableCell>
-                  <TableCell>{c.birthDate}</TableCell>
-                  <TableCell>
-                    <StatusChip status={c.status} />
-                  </TableCell>
-                  <TableCell align="right">
-                    <Tooltip title="Editar">
-                      <IconButton size="small" onClick={() => openEdit(c)}>
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Baja lógica">
-                      <span>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          disabled={c.status === 'DELETED'}
-                          onClick={() => remove(c)}
-                        >
-                          <PersonOffIcon fontSize="small" />
+              {st.loading ? (
+                <SkeletonRows cols={7} />
+              ) : st.rows.length === 0 ? (
+                <EmptyRow
+                  cols={7}
+                  message={st.isFiltered ? 'No hay resultados para la búsqueda' : 'No hay clientes registrados'}
+                />
+              ) : (
+                st.rows.map((c) => (
+                  <TableRow key={c.customerId} hover>
+                    <TableCell>{c.customerId}</TableCell>
+                    <TableCell>
+                      {c.firstName} {c.lastName}
+                    </TableCell>
+                    <TableCell>{c.email}</TableCell>
+                    <TableCell>{c.phone}</TableCell>
+                    <TableCell>{c.birthDate}</TableCell>
+                    <TableCell>
+                      <StatusChip status={c.status} />
+                    </TableCell>
+                    <TableCell align="right">
+                      <Tooltip title="Editar">
+                        <IconButton size="small" onClick={() => openEdit(c)}>
+                          <EditIcon fontSize="small" />
                         </IconButton>
-                      </span>
-                    </Tooltip>
-                  </TableCell>
-                </TableRow>
-              ))}
+                      </Tooltip>
+                      <Tooltip title="Baja lógica">
+                        <span>
+                          <IconButton
+                            size="small"
+                            color="error"
+                            disabled={c.status === 'DELETED'}
+                            onClick={() => remove(c)}
+                          >
+                            <PersonOffIcon fontSize="small" />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </TableContainer>
-      )}
+        {!st.loading && (
+          <DataTablePagination
+            count={st.total}
+            page={st.page}
+            rowsPerPage={st.rowsPerPage}
+            onPageChange={st.onChangePage}
+            onRowsPerPageChange={st.onChangeRowsPerPage}
+          />
+        )}
+      </Paper>
 
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>{editing ? 'Editar cliente' : 'Nuevo cliente'}</DialogTitle>
@@ -198,7 +231,12 @@ export default function Customers() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpen(false)}>Cancelar</Button>
-          <Button variant="contained" onClick={save} disabled={saving}>
+          <Button
+            variant="contained"
+            onClick={save}
+            disabled={saving}
+            startIcon={saving ? <CircularProgress size={16} color="inherit" /> : null}
+          >
             Guardar
           </Button>
         </DialogActions>

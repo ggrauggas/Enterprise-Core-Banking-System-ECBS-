@@ -5,8 +5,12 @@ import java.util.Map;
 
 import com.ecbs.cobol.BankingService;
 import com.ecbs.cobol.BridgeException;
+import com.ecbs.common.PageResponse;
+import com.ecbs.common.Paging;
 import com.ecbs.transaction.Transaction;
 import com.ecbs.transaction.TransactionRepository;
+
+import org.springframework.data.domain.Page;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -41,16 +45,30 @@ public class AccountController {
     }
 
     @GetMapping
-    @Operation(summary = "List accounts, optionally filtered by customer or status")
-    public List<Account> list(@RequestParam(required = false) Long customerId,
-                              @RequestParam(required = false) Account.Status status) {
-        List<Account> base = customerId != null
-                ? repo.findByCustomerId(customerId)
-                : repo.findAll();
-        if (status != null) {
-            return base.stream().filter(a -> a.getStatus() == status).toList();
+    @Operation(summary = "List accounts; paginated when 'page' is given, optional customer/status/q filters")
+    public Object list(@RequestParam(required = false) Long customerId,
+                       @RequestParam(required = false) Account.Status status,
+                       @RequestParam(required = false) String q,
+                       @RequestParam(required = false) Integer page,
+                       @RequestParam(required = false) Integer size) {
+        // Paginated branch: a single index-backed query covers every filter and
+        // never materialises the whole table.
+        if (page != null) {
+            Page<Account> result = repo.search(customerId, status, Paging.like(q),
+                    Paging.of(page, size, "accountId"));
+            return PageResponse.of(result);
         }
-        return base;
+        // Backward-compatible full-list branch (Fase 15 index-backed filtering).
+        if (customerId != null && status != null) {
+            return repo.findByCustomerIdAndStatus(customerId, status);
+        }
+        if (customerId != null) {
+            return repo.findByCustomerId(customerId);
+        }
+        if (status != null) {
+            return repo.findByStatus(status);
+        }
+        return repo.findAll();
     }
 
     @GetMapping("/{id}")

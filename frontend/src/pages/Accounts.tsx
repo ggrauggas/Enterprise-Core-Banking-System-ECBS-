@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
@@ -25,55 +25,65 @@ import LockIcon from '@mui/icons-material/Lock';
 import { api, eur, errMsg } from '../api/client';
 import type { Account, Customer, Transaction } from '../api/types';
 import { useToast } from '../ui/Toast';
+import { useConfirm } from '../ui/ConfirmDialog';
 import StatusChip from '../ui/StatusChip';
 import PageHeader from '../ui/PageHeader';
+import { SkeletonRows, EmptyRow } from '../ui/TableStates';
+import { useServerTable } from '../ui/useServerTable';
+import DataTableToolbar from '../ui/DataTableToolbar';
+import DataTablePagination from '../ui/DataTablePagination';
+import EntityAutocomplete from '../ui/EntityAutocomplete';
+
+const MONO = '"JetBrains Mono", ui-monospace, monospace';
 
 export default function Accounts() {
   const toast = useToast();
-  const [rows, setRows] = useState<Account[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
+  const confirm = useConfirm();
+  const st = useServerTable<Account>('/accounts', {
+    onError: (e) => toast(errMsg(e), 'error'),
+  });
   const [open, setOpen] = useState(false);
-  const [customerId, setCustomerId] = useState('');
+  const [customer, setCustomer] = useState<Customer | null>(null);
   const [accountType, setAccountType] = useState('CHECKING');
   const [saving, setSaving] = useState(false);
   const [movements, setMovements] = useState<Transaction[] | null>(null);
   const [movingAccount, setMovingAccount] = useState<Account | null>(null);
 
-  const load = () => {
-    setLoading(true);
-    Promise.all([api.get<Account[]>('/accounts'), api.get<Customer[]>('/customers')])
-      .then(([a, c]) => {
-        setRows(a.data);
-        setCustomers(c.data);
-      })
-      .catch((e) => toast(errMsg(e), 'error'))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(load, []); // eslint-disable-line react-hooks/exhaustive-deps
-
   const openAccount = () => {
+    if (!customer) return;
     setSaving(true);
     api
-      .post('/accounts', { customerId: Number(customerId), accountType })
+      .post('/accounts', { customerId: customer.customerId, accountType })
       .then(() => {
         toast('Cuenta abierta');
         setOpen(false);
-        setCustomerId('');
-        load();
+        setCustomer(null);
+        st.reload();
       })
       .catch((e) => toast(errMsg(e), 'error'))
       .finally(() => setSaving(false));
   };
 
-  const close = (a: Account) => {
-    if (!window.confirm(`¿Cerrar la cuenta ${a.iban}? (saldo debe ser 0)`)) return;
+  const close = async (a: Account) => {
+    const ok = await confirm({
+      title: 'Cerrar cuenta',
+      message:
+        'El cierre es definitivo. El saldo debe ser 0 para poder cerrarla; en caso contrario la operación será rechazada.',
+      confirmText: 'Cerrar cuenta',
+      tone: 'danger',
+      icon: <LockIcon fontSize="small" />,
+      details: [
+        { label: 'IBAN', value: a.iban, mono: true },
+        { label: 'Titular', value: `Cliente ${a.customerId}`, mono: true },
+        { label: 'Saldo', value: eur(a.balance), mono: true, emphasis: a.balance !== 0 },
+      ],
+    });
+    if (!ok) return;
     api
       .post(`/accounts/${a.accountId}/close`)
       .then(() => {
         toast('Cuenta cerrada');
-        load();
+        st.reload();
       })
       .catch((e) => toast(errMsg(e), 'error'));
   };
@@ -99,10 +109,16 @@ export default function Accounts() {
         }
       />
 
-      {loading ? (
-        <CircularProgress />
-      ) : (
-        <TableContainer component={Paper}>
+      <DataTableToolbar
+        query={st.query}
+        onSearch={st.onSearch}
+        placeholder="Buscar por IBAN, cliente, ID…"
+        total={st.total}
+        isFiltered={st.isFiltered}
+      />
+
+      <Paper variant="outlined">
+        <TableContainer>
           <Table size="small">
             <TableHead>
               <TableRow>
@@ -116,61 +132,77 @@ export default function Accounts() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {rows.map((a) => (
-                <TableRow key={a.accountId} hover>
-                  <TableCell>{a.accountId}</TableCell>
-                  <TableCell>{a.iban}</TableCell>
-                  <TableCell>{a.customerId}</TableCell>
-                  <TableCell>{a.accountType}</TableCell>
-                  <TableCell align="right">{eur(a.balance)}</TableCell>
-                  <TableCell>
-                    <StatusChip status={a.status} />
-                  </TableCell>
-                  <TableCell align="right">
-                    <Tooltip title="Movimientos">
-                      <IconButton size="small" onClick={() => showMovements(a)}>
-                        <ReceiptLongIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Cerrar cuenta">
-                      <span>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          disabled={a.status === 'CLOSED'}
-                          onClick={() => close(a)}
-                        >
-                          <LockIcon fontSize="small" />
+              {st.loading ? (
+                <SkeletonRows cols={7} />
+              ) : st.rows.length === 0 ? (
+                <EmptyRow
+                  cols={7}
+                  message={st.isFiltered ? 'No hay resultados para la búsqueda' : 'No hay cuentas registradas'}
+                />
+              ) : (
+                st.rows.map((a) => (
+                  <TableRow key={a.accountId} hover>
+                    <TableCell>{a.accountId}</TableCell>
+                    <TableCell sx={{ fontFamily: MONO, fontSize: 12.5, letterSpacing: '0.02em' }}>
+                      {a.iban}
+                    </TableCell>
+                    <TableCell>{a.customerId}</TableCell>
+                    <TableCell>{a.accountType}</TableCell>
+                    <TableCell align="right" sx={{ fontFamily: MONO, fontWeight: 500 }}>
+                      {eur(a.balance)}
+                    </TableCell>
+                    <TableCell>
+                      <StatusChip status={a.status} />
+                    </TableCell>
+                    <TableCell align="right">
+                      <Tooltip title="Movimientos">
+                        <IconButton size="small" onClick={() => showMovements(a)}>
+                          <ReceiptLongIcon fontSize="small" />
                         </IconButton>
-                      </span>
-                    </Tooltip>
-                  </TableCell>
-                </TableRow>
-              ))}
+                      </Tooltip>
+                      <Tooltip title="Cerrar cuenta">
+                        <span>
+                          <IconButton
+                            size="small"
+                            color="error"
+                            disabled={a.status === 'CLOSED'}
+                            onClick={() => close(a)}
+                          >
+                            <LockIcon fontSize="small" />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </TableContainer>
-      )}
+        {!st.loading && (
+          <DataTablePagination
+            count={st.total}
+            page={st.page}
+            rowsPerPage={st.rowsPerPage}
+            onPageChange={st.onChangePage}
+            onRowsPerPageChange={st.onChangeRowsPerPage}
+          />
+        )}
+      </Paper>
 
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="xs">
         <DialogTitle>Abrir cuenta</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField
-              select
+            <EntityAutocomplete<Customer>
               label="Cliente"
-              value={customerId}
-              onChange={(e) => setCustomerId(e.target.value)}
-              fullWidth
-            >
-              {customers
-                .filter((c) => c.status === 'ACTIVE')
-                .map((c) => (
-                  <MenuItem key={c.customerId} value={c.customerId}>
-                    {c.customerId} — {c.firstName} {c.lastName}
-                  </MenuItem>
-                ))}
-            </TextField>
+              value={customer}
+              onChange={setCustomer}
+              endpoint="/customers"
+              params={{ status: 'ACTIVE' }}
+              getOptionLabel={(c) => `${c.customerId} — ${c.firstName} ${c.lastName}`}
+              isOptionEqualToValue={(a, b) => a.customerId === b.customerId}
+            />
             <TextField
               select
               label="Tipo"
@@ -185,7 +217,12 @@ export default function Accounts() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpen(false)}>Cancelar</Button>
-          <Button variant="contained" onClick={openAccount} disabled={saving || !customerId}>
+          <Button
+            variant="contained"
+            onClick={openAccount}
+            disabled={saving || !customer}
+            startIcon={saving ? <CircularProgress size={16} color="inherit" /> : null}
+          >
             Abrir
           </Button>
         </DialogActions>
@@ -208,15 +245,21 @@ export default function Accounts() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {movements.map((t) => (
-                  <TableRow key={t.transactionId}>
-                    <TableCell>{t.transactionId}</TableCell>
-                    <TableCell>{t.timestamp?.slice(0, 19).replace('T', ' ')}</TableCell>
-                    <TableCell>{t.transactionType}</TableCell>
-                    <TableCell align="right">{eur(t.amount)}</TableCell>
-                    <TableCell>{t.description}</TableCell>
-                  </TableRow>
-                ))}
+                {movements.length === 0 ? (
+                  <EmptyRow cols={5} message="Sin movimientos" />
+                ) : (
+                  movements.map((t) => (
+                    <TableRow key={t.transactionId} hover>
+                      <TableCell>{t.transactionId}</TableCell>
+                      <TableCell>{t.timestamp?.slice(0, 19).replace('T', ' ')}</TableCell>
+                      <TableCell>{t.transactionType}</TableCell>
+                      <TableCell align="right" sx={{ fontFamily: MONO, fontWeight: 500 }}>
+                        {eur(t.amount)}
+                      </TableCell>
+                      <TableCell>{t.description}</TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           )}

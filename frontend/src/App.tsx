@@ -56,22 +56,22 @@ export default function App() {
         elevation={0}
         sx={{
           zIndex: (t) => t.zIndex.drawer + 1,
-          background: 'linear-gradient(90deg, #072742 0%, #0b3d66 60%, #114b7d 100%)',
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          background: 'linear-gradient(180deg, #103253 0%, #0d2740 100%)',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
         }}
       >
         <Toolbar>
           <Avatar
             variant="rounded"
-            sx={{ bgcolor: 'rgba(255,255,255,0.14)', mr: 1.5, width: 38, height: 38 }}
+            sx={{ bgcolor: 'rgba(255,255,255,0.12)', mr: 1.5, width: 38, height: 38, borderRadius: 2 }}
           >
             <AccountBalanceIcon />
           </Avatar>
-          <Box sx={{ flexGrow: 1, lineHeight: 1 }}>
-            <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 800, letterSpacing: '0.02em' }}>
+          <Box sx={{ flexGrow: 1, lineHeight: 1.1 }}>
+            <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 800, letterSpacing: '0.04em' }}>
               ECBS
             </Typography>
-            <Typography variant="caption" sx={{ opacity: 0.7 }}>
+            <Typography variant="caption" sx={{ opacity: 0.65, letterSpacing: '0.01em' }}>
               Enterprise Core Banking System
             </Typography>
           </Box>
@@ -82,7 +82,7 @@ export default function App() {
               </Avatar>
             }
             label="Operador"
-            sx={{ color: '#fff', bgcolor: 'rgba(255,255,255,0.12)', fontWeight: 600 }}
+            sx={{ color: '#fff', bgcolor: 'rgba(255,255,255,0.1)', fontWeight: 600 }}
           />
         </Toolbar>
       </AppBar>
@@ -110,17 +110,29 @@ export default function App() {
                 component={NavLink}
                 to={item.to}
                 sx={{
+                  position: 'relative',
                   mx: 1.25,
                   my: 0.25,
-                  borderRadius: 2,
+                  borderRadius: 2.5,
                   color: 'text.secondary',
-                  '& .MuiListItemIcon-root': { color: 'text.secondary', minWidth: 40 },
-                  '&:hover': { bgcolor: 'rgba(11,61,102,0.06)' },
+                  '& .MuiListItemIcon-root': { color: 'text.secondary', minWidth: 38 },
+                  '& .MuiListItemText-primary': { fontSize: 14, fontWeight: 600 },
+                  '&:hover': { bgcolor: 'rgba(21,83,158,0.05)' },
                   '&.active': {
-                    bgcolor: 'rgba(11,61,102,0.10)',
+                    bgcolor: 'rgba(21,83,158,0.08)',
                     color: 'primary.dark',
                     '& .MuiListItemIcon-root': { color: 'primary.dark' },
                     '& .MuiListItemText-primary': { fontWeight: 700 },
+                    '&::before': {
+                      content: '""',
+                      position: 'absolute',
+                      left: 4,
+                      top: 9,
+                      bottom: 9,
+                      width: 3,
+                      borderRadius: 3,
+                      backgroundColor: 'primary.main',
+                    },
                   },
                 }}
               >
@@ -149,7 +161,15 @@ export default function App() {
 
       <Box
         component="main"
-        sx={{ flexGrow: 1, p: { xs: 2, md: 4 }, minHeight: '100vh', bgcolor: 'background.default' }}
+        sx={{
+          flexGrow: 1,
+          p: { xs: 2, md: 4 },
+          minHeight: '100dvh',
+          maxWidth: 1480,
+          mx: 'auto',
+          width: '100%',
+          bgcolor: 'background.default',
+        }}
       >
         <Toolbar />
         <Routes>

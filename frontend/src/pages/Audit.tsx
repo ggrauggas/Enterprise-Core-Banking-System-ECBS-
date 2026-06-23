@@ -22,8 +22,12 @@ import { api, errMsg } from '../api/client';
 import type { AuditEntry, AuditStats } from '../api/types';
 import { useToast } from '../ui/Toast';
 import PageHeader from '../ui/PageHeader';
+import { EmptyRow } from '../ui/TableStates';
+import { useDataTable } from '../ui/useDataTable';
+import DataTablePagination from '../ui/DataTablePagination';
 
 const ENTITY_TYPES = ['', 'CUSTOMER', 'ACCOUNT', 'CARD', 'LOAN', 'BATCH'];
+const MONO = '"JetBrains Mono", ui-monospace, monospace';
 
 function jsonCell(value: unknown): string {
   if (value === null || value === undefined) return '—';
@@ -68,6 +72,8 @@ export default function Audit() {
 
   const set = (k: keyof typeof filters) => (e: ChangeEvent<HTMLInputElement>) =>
     setFilters((f) => ({ ...f, [k]: e.target.value }));
+
+  const dt = useDataTable(entries, { initialRowsPerPage: 50 });
 
   return (
     <Box>
@@ -130,40 +136,53 @@ export default function Audit() {
         </CardContent>
       </Card>
 
-      <TableContainer component={Paper} sx={{ maxHeight: 560 }}>
-        <Table size="small" stickyHeader>
-          <TableHead>
-            <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>Fecha</TableCell>
-              <TableCell>Usuario</TableCell>
-              <TableCell>Operación</TableCell>
-              <TableCell>Entidad</TableCell>
-              <TableCell>Anterior</TableCell>
-              <TableCell>Nuevo</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {entries.map((e) => (
-              <TableRow key={e.auditId} hover>
-                <TableCell>{e.auditId}</TableCell>
-                <TableCell>{e.eventTime}</TableCell>
-                <TableCell>{e.username}</TableCell>
-                <TableCell>{e.operation}</TableCell>
-                <TableCell>
-                  {e.entityType} #{e.entityId}
-                </TableCell>
-                <TableCell sx={{ maxWidth: 240, fontFamily: 'monospace', fontSize: 12 }}>
-                  {jsonCell(e.oldValue)}
-                </TableCell>
-                <TableCell sx={{ maxWidth: 240, fontFamily: 'monospace', fontSize: 12 }}>
-                  {jsonCell(e.newValue)}
-                </TableCell>
+      <Paper variant="outlined">
+        <TableContainer sx={{ maxHeight: 560 }}>
+          <Table size="small" stickyHeader>
+            <TableHead>
+              <TableRow>
+                <TableCell>ID</TableCell>
+                <TableCell>Fecha</TableCell>
+                <TableCell>Usuario</TableCell>
+                <TableCell>Operación</TableCell>
+                <TableCell>Entidad</TableCell>
+                <TableCell>Anterior</TableCell>
+                <TableCell>Nuevo</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {dt.paged.length === 0 ? (
+                <EmptyRow cols={7} message="No hay eventos para los filtros aplicados" />
+              ) : (
+                dt.paged.map((e) => (
+                <TableRow key={e.auditId} hover>
+                  <TableCell>{e.auditId}</TableCell>
+                  <TableCell>{e.eventTime}</TableCell>
+                  <TableCell>{e.username}</TableCell>
+                  <TableCell>{e.operation}</TableCell>
+                  <TableCell>
+                    {e.entityType} #{e.entityId}
+                  </TableCell>
+                  <TableCell sx={{ maxWidth: 240, fontFamily: MONO, fontSize: 11.5 }}>
+                    {jsonCell(e.oldValue)}
+                  </TableCell>
+                  <TableCell sx={{ maxWidth: 240, fontFamily: MONO, fontSize: 11.5 }}>
+                    {jsonCell(e.newValue)}
+                  </TableCell>
+                </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        <DataTablePagination
+          count={dt.total}
+          page={dt.page}
+          rowsPerPage={dt.rowsPerPage}
+          onPageChange={dt.onChangePage}
+          onRowsPerPageChange={dt.onChangeRowsPerPage}
+        />
+      </Paper>
     </Box>
   );
 }

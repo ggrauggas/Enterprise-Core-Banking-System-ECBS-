@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -31,36 +31,30 @@ import type { Account, Loan, Simulation } from '../api/types';
 import { useToast } from '../ui/Toast';
 import StatusChip from '../ui/StatusChip';
 import PageHeader from '../ui/PageHeader';
+import { SkeletonRows, EmptyRow } from '../ui/TableStates';
+import { useServerTable } from '../ui/useServerTable';
+import DataTableToolbar from '../ui/DataTableToolbar';
+import DataTablePagination from '../ui/DataTablePagination';
 
+const MONO = '"JetBrains Mono", ui-monospace, monospace';
 const blankSim = { amount: '10000', interestRate: '5', durationMonths: '36' };
 
 export default function Loans() {
   const toast = useToast();
-  const [rows, setRows] = useState<Loan[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [loading, setLoading] = useState(true);
+  const st = useServerTable<Loan>('/loans', {
+    onError: (e) => toast(errMsg(e), 'error'),
+  });
   const [sim, setSim] = useState(blankSim);
   const [schedule, setSchedule] = useState<Simulation | null>(null);
 
   const [requestOpen, setRequestOpen] = useState(false);
   const [reqForm, setReqForm] = useState({ customerId: '', amount: '', interestRate: '', durationMonths: '' });
   const [approve, setApprove] = useState<Loan | null>(null);
+  const [ownerAccounts, setOwnerAccounts] = useState<Account[]>([]);
   const [disburseAccount, setDisburseAccount] = useState('');
   const [reject, setReject] = useState<Loan | null>(null);
   const [reason, setReason] = useState('');
-
-  const load = () => {
-    setLoading(true);
-    Promise.all([api.get<Loan[]>('/loans'), api.get<Account[]>('/accounts')])
-      .then(([l, a]) => {
-        setRows(l.data);
-        setAccounts(a.data);
-      })
-      .catch((e) => toast(errMsg(e), 'error'))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(load, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const [busy, setBusy] = useState(false);
 
   const runSimulate = () => {
     api
@@ -81,6 +75,7 @@ export default function Loans() {
   };
 
   const submitRequest = () => {
+    setBusy(true);
     api
       .post('/loans', {
         customerId: Number(reqForm.customerId),
@@ -92,13 +87,27 @@ export default function Loans() {
         toast('Préstamo solicitado');
         setRequestOpen(false);
         setReqForm({ customerId: '', amount: '', interestRate: '', durationMonths: '' });
-        load();
+        st.reload();
       })
+      .catch((e) => toast(errMsg(e), 'error'))
+      .finally(() => setBusy(false));
+  };
+
+  // Owner accounts are small (per customer) so they are fetched on demand when
+  // the approve dialog opens rather than loading every account up front.
+  const openApprove = (l: Loan) => {
+    setApprove(l);
+    setDisburseAccount('');
+    setOwnerAccounts([]);
+    api
+      .get<Account[]>('/accounts', { params: { customerId: l.customerId, status: 'ACTIVE' } })
+      .then((r) => setOwnerAccounts(r.data))
       .catch((e) => toast(errMsg(e), 'error'));
   };
 
   const submitApprove = () => {
     if (!approve) return;
+    setBusy(true);
     const body = disburseAccount ? { accountId: Number(disburseAccount) } : {};
     api
       .post(`/loans/${approve.loanId}/approve`, body)
@@ -106,27 +115,26 @@ export default function Loans() {
         toast(disburseAccount ? 'Préstamo aprobado y desembolsado' : 'Préstamo aprobado');
         setApprove(null);
         setDisburseAccount('');
-        load();
+        st.reload();
       })
-      .catch((e) => toast(errMsg(e), 'error'));
+      .catch((e) => toast(errMsg(e), 'error'))
+      .finally(() => setBusy(false));
   };
 
   const submitReject = () => {
     if (!reject) return;
+    setBusy(true);
     api
       .post(`/loans/${reject.loanId}/reject`, { reason })
       .then(() => {
         toast('Préstamo rechazado');
         setReject(null);
         setReason('');
-        load();
+        st.reload();
       })
-      .catch((e) => toast(errMsg(e), 'error'));
+      .catch((e) => toast(errMsg(e), 'error'))
+      .finally(() => setBusy(false));
   };
-
-  const ownerAccounts = approve
-    ? accounts.filter((a) => a.customerId === approve.customerId && a.status === 'ACTIVE')
-    : [];
 
   return (
     <Box>
@@ -171,10 +179,16 @@ export default function Loans() {
         </CardContent>
       </Card>
 
-      {loading ? (
-        <CircularProgress />
-      ) : (
-        <TableContainer component={Paper}>
+      <DataTableToolbar
+        query={st.query}
+        onSearch={st.onSearch}
+        placeholder="Buscar por cliente, ID…"
+        total={st.total}
+        isFiltered={st.isFiltered}
+      />
+
+      <Paper variant="outlined">
+        <TableContainer>
           <Table size="small">
             <TableHead>
               <TableRow>
@@ -188,53 +202,73 @@ export default function Loans() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {rows.map((l) => (
-                <TableRow key={l.loanId} hover>
-                  <TableCell>{l.loanId}</TableCell>
-                  <TableCell>{l.customerId}</TableCell>
-                  <TableCell align="right">{eur(l.amount)}</TableCell>
-                  <TableCell align="right">{l.interestRate}%</TableCell>
-                  <TableCell align="right">{l.durationMonths}</TableCell>
-                  <TableCell>
-                    <StatusChip status={l.status} />
-                  </TableCell>
-                  <TableCell align="right">
-                    <Tooltip title="Cuadro de amortización">
-                      <IconButton size="small" onClick={() => viewSchedule(l)}>
-                        <TableChartIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Aprobar">
-                      <span>
-                        <IconButton
-                          size="small"
-                          color="success"
-                          disabled={l.status !== 'REQUESTED'}
-                          onClick={() => setApprove(l)}
-                        >
-                          <CheckIcon fontSize="small" />
+              {st.loading ? (
+                <SkeletonRows cols={7} />
+              ) : st.rows.length === 0 ? (
+                <EmptyRow
+                  cols={7}
+                  message={st.isFiltered ? 'No hay resultados para la búsqueda' : 'No hay préstamos registrados'}
+                />
+              ) : (
+                st.rows.map((l) => (
+                  <TableRow key={l.loanId} hover>
+                    <TableCell>{l.loanId}</TableCell>
+                    <TableCell>{l.customerId}</TableCell>
+                    <TableCell align="right" sx={{ fontFamily: MONO, fontWeight: 500 }}>
+                      {eur(l.amount)}
+                    </TableCell>
+                    <TableCell align="right">{l.interestRate}%</TableCell>
+                    <TableCell align="right">{l.durationMonths}</TableCell>
+                    <TableCell>
+                      <StatusChip status={l.status} />
+                    </TableCell>
+                    <TableCell align="right">
+                      <Tooltip title="Cuadro de amortización">
+                        <IconButton size="small" onClick={() => viewSchedule(l)}>
+                          <TableChartIcon fontSize="small" />
                         </IconButton>
-                      </span>
-                    </Tooltip>
-                    <Tooltip title="Rechazar">
-                      <span>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          disabled={l.status !== 'REQUESTED'}
-                          onClick={() => setReject(l)}
-                        >
-                          <CloseIcon fontSize="small" />
-                        </IconButton>
-                      </span>
-                    </Tooltip>
-                  </TableCell>
-                </TableRow>
-              ))}
+                      </Tooltip>
+                      <Tooltip title="Aprobar">
+                        <span>
+                          <IconButton
+                            size="small"
+                            color="success"
+                            disabled={l.status !== 'REQUESTED'}
+                            onClick={() => openApprove(l)}
+                          >
+                            <CheckIcon fontSize="small" />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                      <Tooltip title="Rechazar">
+                        <span>
+                          <IconButton
+                            size="small"
+                            color="error"
+                            disabled={l.status !== 'REQUESTED'}
+                            onClick={() => setReject(l)}
+                          >
+                            <CloseIcon fontSize="small" />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </TableContainer>
-      )}
+        {!st.loading && (
+          <DataTablePagination
+            count={st.total}
+            page={st.page}
+            rowsPerPage={st.rowsPerPage}
+            onPageChange={st.onChangePage}
+            onRowsPerPageChange={st.onChangeRowsPerPage}
+          />
+        )}
+      </Paper>
 
       {/* Request dialog */}
       <Dialog open={requestOpen} onClose={() => setRequestOpen(false)} fullWidth maxWidth="xs">
@@ -269,7 +303,12 @@ export default function Loans() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setRequestOpen(false)}>Cancelar</Button>
-          <Button variant="contained" onClick={submitRequest}>
+          <Button
+            variant="contained"
+            onClick={submitRequest}
+            disabled={busy}
+            startIcon={busy ? <CircularProgress size={16} color="inherit" /> : null}
+          >
             Solicitar
           </Button>
         </DialogActions>
@@ -299,7 +338,13 @@ export default function Loans() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setApprove(null)}>Cancelar</Button>
-          <Button variant="contained" color="success" onClick={submitApprove}>
+          <Button
+            variant="contained"
+            color="success"
+            onClick={submitApprove}
+            disabled={busy}
+            startIcon={busy ? <CircularProgress size={16} color="inherit" /> : null}
+          >
             Aprobar
           </Button>
         </DialogActions>
@@ -321,7 +366,13 @@ export default function Loans() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setReject(null)}>Cancelar</Button>
-          <Button variant="contained" color="error" onClick={submitReject}>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={submitReject}
+            disabled={busy || !reason.trim()}
+            startIcon={busy ? <CircularProgress size={16} color="inherit" /> : null}
+          >
             Rechazar
           </Button>
         </DialogActions>
@@ -361,10 +412,10 @@ export default function Loans() {
                       <TableRow key={r.month}>
                         <TableCell>{r.month}</TableCell>
                         <TableCell>{r.dueDate}</TableCell>
-                        <TableCell align="right">{eur(r.payment)}</TableCell>
-                        <TableCell align="right">{eur(r.interest)}</TableCell>
-                        <TableCell align="right">{eur(r.principal)}</TableCell>
-                        <TableCell align="right">{eur(r.remaining)}</TableCell>
+                        <TableCell align="right" sx={{ fontFamily: MONO }}>{eur(r.payment)}</TableCell>
+                        <TableCell align="right" sx={{ fontFamily: MONO }}>{eur(r.interest)}</TableCell>
+                        <TableCell align="right" sx={{ fontFamily: MONO }}>{eur(r.principal)}</TableCell>
+                        <TableCell align="right" sx={{ fontFamily: MONO }}>{eur(r.remaining)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

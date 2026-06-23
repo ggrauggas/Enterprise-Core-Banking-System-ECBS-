@@ -6,6 +6,10 @@ import java.util.Map;
 
 import com.ecbs.cobol.BankingService;
 import com.ecbs.cobol.BridgeException;
+import com.ecbs.common.PageResponse;
+import com.ecbs.common.Paging;
+
+import org.springframework.data.domain.Page;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -38,14 +42,29 @@ public class LoanController {
     }
 
     @GetMapping
-    @Operation(summary = "List loans, optionally filtered by customer or status")
-    public List<Loan> list(@RequestParam(required = false) Long customerId,
-                           @RequestParam(required = false) Loan.Status status) {
-        if (customerId != null) {
-            List<Loan> base = repo.findByCustomerId(customerId);
-            return status != null ? base.stream().filter(l -> l.getStatus() == status).toList() : base;
+    @Operation(summary = "List loans; paginated when 'page' is given, optional customer/status/q filters")
+    public Object list(@RequestParam(required = false) Long customerId,
+                       @RequestParam(required = false) Loan.Status status,
+                       @RequestParam(required = false) String q,
+                       @RequestParam(required = false) Integer page,
+                       @RequestParam(required = false) Integer size) {
+        if (page != null) {
+            Page<Loan> result = repo.search(customerId, status, Paging.like(q),
+                    Paging.of(page, size, "loanId"));
+            return PageResponse.of(result);
         }
-        return status != null ? repo.findByStatus(status) : repo.findAll();
+        // Index-backed filtering (Fase 15): combine customer and status at the
+        // database level instead of post-filtering in memory.
+        if (customerId != null && status != null) {
+            return repo.findByCustomerIdAndStatus(customerId, status);
+        }
+        if (customerId != null) {
+            return repo.findByCustomerId(customerId);
+        }
+        if (status != null) {
+            return repo.findByStatus(status);
+        }
+        return repo.findAll();
     }
 
     @GetMapping("/{id}")

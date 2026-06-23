@@ -16,12 +16,12 @@ export default function PageHeader({ title, subtitle, action }: Props) {
       justifyContent="space-between"
       alignItems="flex-end"
       spacing={2}
-      sx={{ mb: 3 }}
+      sx={{ mb: 3, pb: 2.25, borderBottom: '1px solid', borderColor: 'divider' }}
     >
       <Box>
         <Typography variant="h4">{title}</Typography>
         {subtitle && (
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
             {subtitle}
           </Typography>
         )}

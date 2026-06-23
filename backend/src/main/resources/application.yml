@@ -8,15 +8,40 @@ spring:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ecbs}
     username: ${SPRING_DATASOURCE_USERNAME:ecbs_admin}
     password: ${SPRING_DATASOURCE_PASSWORD:ecbs_secret}
+    # HikariCP pool sized for sustained throughput under the nightly batch
+    # and concurrent API load (Fase 15). Fast-fail on a saturated pool so a
+    # stuck database does not hang request threads indefinitely.
+    hikari:
+      pool-name: ecbs-pool
+      maximum-pool-size: ${ECBS_DB_POOL_MAX:20}
+      minimum-idle: ${ECBS_DB_POOL_MIN:5}
+      connection-timeout: 10000
+      idle-timeout: 300000
+      max-lifetime: 1800000
   jpa:
     # Schema is owned by the SQL scripts in /database; Hibernate only checks.
     hibernate:
       ddl-auto: validate
     open-in-view: false
+    properties:
+      hibernate:
+        # Batch the read-model writes so bulk operations issue grouped
+        # INSERT/UPDATE statements instead of one round-trip per row.
+        jdbc:
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
 
 ecbs:
   cobol-bridge:
     url: ${ECBS_COBOL_BRIDGE_URL:http://localhost:9090}
+    # Resilience for the COBOL bridge call: bounded timeouts plus a few
+    # retries with backoff so a transient bridge hiccup does not surface as
+    # a request failure (Fase 15 - recuperación ante fallos).
+    connect-timeout-ms: ${ECBS_BRIDGE_CONNECT_TIMEOUT:2000}
+    read-timeout-ms: ${ECBS_BRIDGE_READ_TIMEOUT:65000}
+    max-retries: ${ECBS_BRIDGE_MAX_RETRIES:2}
+    retry-backoff-ms: ${ECBS_BRIDGE_RETRY_BACKOFF:200}
 
 springdoc:
   swagger-ui:
@@ -29,4 +54,12 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+  health:
+    # The custom COBOL-bridge indicator contributes to the aggregate status
+    # so /actuator/health turns DOWN when the business layer is unreachable.
+    defaults:
+      enabled: true

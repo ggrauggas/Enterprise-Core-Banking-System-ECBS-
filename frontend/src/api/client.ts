@@ -20,8 +20,15 @@ export function errMsg(e: unknown): string {
   return String(e);
 }
 
-/** Currency formatter (EUR, Spanish locale). */
+/**
+ * Currency formatter (EUR, Spanish locale).
+ *
+ * The `Intl.NumberFormat` instance is built once and reused: constructing it
+ * per cell is comparatively expensive and shows up when rendering long lists.
+ */
+const eurFormat = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
+
 export function eur(value: number | string | undefined): string {
   const n = typeof value === 'string' ? Number(value) : value ?? 0;
-  return n.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
+  return eurFormat.format(Number.isFinite(n) ? n : 0);
 }

@@ -6,6 +6,10 @@ import java.util.Map;
 
 import com.ecbs.cobol.BankingService;
 import com.ecbs.cobol.BridgeException;
+import com.ecbs.common.PageResponse;
+import com.ecbs.common.Paging;
+
+import org.springframework.data.domain.Page;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -38,14 +42,28 @@ public class CardController {
     }
 
     @GetMapping
-    @Operation(summary = "List cards, optionally filtered by account or status")
-    public List<Card> list(@RequestParam(required = false) Long accountId,
-                           @RequestParam(required = false) Card.Status status) {
-        List<Card> base = accountId != null ? repo.findByAccountId(accountId) : repo.findAll();
-        if (status != null) {
-            return base.stream().filter(c -> c.getStatus() == status).toList();
+    @Operation(summary = "List cards; paginated when 'page' is given, optional account/status/q filters")
+    public Object list(@RequestParam(required = false) Long accountId,
+                       @RequestParam(required = false) Card.Status status,
+                       @RequestParam(required = false) String q,
+                       @RequestParam(required = false) Integer page,
+                       @RequestParam(required = false) Integer size) {
+        if (page != null) {
+            Page<Card> result = repo.search(accountId, status, Paging.like(q),
+                    Paging.of(page, size, "cardId"));
+            return PageResponse.of(result);
         }
-        return base;
+        // Index-backed filtering (Fase 15) rather than scanning every card.
+        if (accountId != null && status != null) {
+            return repo.findByAccountIdAndStatus(accountId, status);
+        }
+        if (accountId != null) {
+            return repo.findByAccountId(accountId);
+        }
+        if (status != null) {
+            return repo.findByStatus(status);
+        }
+        return repo.findAll();
     }
 
     @GetMapping("/{id}")

@@ -6,6 +6,10 @@ import java.util.Map;
 
 import com.ecbs.cobol.BankingService;
 import com.ecbs.cobol.BridgeException;
+import com.ecbs.common.PageResponse;
+import com.ecbs.common.Paging;
+
+import org.springframework.data.domain.Page;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -40,12 +44,20 @@ public class CustomerController {
     }
 
     @GetMapping
-    @Operation(summary = "List customers (DELETED hidden unless status filter given)")
-    public List<Customer> list(@RequestParam(required = false) Customer.Status status) {
-        if (status != null) {
-            return repo.findByStatus(status);
+    @Operation(summary = "List customers; paginated when 'page' is given (DELETED hidden unless status filter)")
+    public Object list(@RequestParam(required = false) Customer.Status status,
+                       @RequestParam(required = false) String q,
+                       @RequestParam(required = false) Integer page,
+                       @RequestParam(required = false) Integer size) {
+        // Backward-compatible: without 'page' the legacy full List is returned.
+        if (page == null) {
+            return status != null ? repo.findByStatus(status) : repo.findByStatusNot(Customer.Status.DELETED);
         }
-        return repo.findByStatusNot(Customer.Status.DELETED);
+        String q2 = Paging.like(q);
+        Page<Customer> result = status != null
+                ? repo.searchByStatus(status, q2, Paging.of(page, size, "customerId"))
+                : repo.searchByStatusNot(Customer.Status.DELETED, q2, Paging.of(page, size, "customerId"));
+        return PageResponse.of(result);
     }
 
     @GetMapping("/{id}")
