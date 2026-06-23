@@ -69,8 +69,23 @@ Servicios:
 | 11   | Reporting                | ✅     |
 | 12   | API REST completa        | ✅     |
 | 13   | Frontend React completo  | ✅     |
-| 14   | Testing                  | ⬜     |
-| 15   | Optimización empresarial | ⬜     |
-| 16   | Simulación de producción | ⬜     |
+| 14   | Testing                  | ✅     |
+| 15   | Optimización empresarial | ✅     |
+| 16   | Simulación de producción | ✅     |
 
 La documentación detallada de cada fase está en [`/docs`](docs/).
+
+## Testing y CI
+
+Cuatro capas de pruebas, ejecutadas en GitHub Actions
+([`.github/workflows/ci.yml`](.github/workflows/ci.yml)):
+
+```bash
+cd backend && mvn verify          # JUnit + MockMvc, gate JaCoCo 80% (real ~96%)
+cd frontend && npm install && npm test   # Vitest + Testing Library
+sh scripts/run-cobol-tests.sh     # drivers COBOL de los módulos puros
+docker compose up -d && bash tests/smoke-api.sh   # integración end-to-end
+```
+
+Detalles en [`tests/README.md`](tests/README.md) y
+[`docs/Fase14.md`](docs/Fase14.md).
